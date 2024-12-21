@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MediaPipe Pose Example</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            width: 100%;
+            height: 100%;
+        }
+        #canvas {
+            width: 100%;
+            height: auto;
+        }
+        video {
+            display: none;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils"></script>
+</head>
+<body>
+    <video id="video" autoplay></video>
+    <canvas id="canvas"></canvas>
+    <button onclick="analyzeStart()">撮影解析開始</button>
+    <br />
+    <img src="arrow.png" width="30px" id ="img-ear" />頭<span id="txt-ear"></span><br />
+    <img src="arrow.png" width="30px" id ="img-sld" />肩<span id="txt-sld"></span><br />
+    <img src="arrow.png" width="30px" id ="img-hip" />腰<span id="txt-hip"></span><br />
+    <audio id="audioPlayer">
+        <source src="countdown.wav" type="audio/wav">
+        お使いのブラウザはaudioタグをサポートしていません。
+    </audio>
+
+    <script>
+        const L_EAR = 7;
+        const R_EAR = 8;
+        const L_SHOULDER = 11;
+        const R_SHOULDER = 12;
+        const L_HIP = 23;
+        const R_HIP = 24;
+        const videoElement = document.getElementById('video');
+        const canvasElement = document.getElementById('canvas');
+        const canvasCtx = canvasElement.getContext('2d');
+        const elmImgEar = document.getElementById('img-ear');
+        const elmTxtEar = document.getElementById('txt-ear');
+        const elmImgSld = document.getElementById('img-sld');
+        const elmTxtSld = document.getElementById('txt-sld');
+        const elmImgHip = document.getElementById('img-hip');
+        const elmTxtHip = document.getElementById('txt-hip');
+
+        function resizeCanvas() {
+            const aspectRatio = videoElement.videoWidth / videoElement.videoHeight;
+            canvasElement.width = window.innerWidth;
+            canvasElement.height = window.innerWidth / aspectRatio;
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+        videoElement.addEventListener('loadedmetadata', resizeCanvas);
+
+        function onResults(results) {
+            canvasCtx.save();
+            canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+            canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
+            if (results.poseLandmarks) {
+                drawConnectors(canvasCtx, results.poseLandmarks, POSE_CONNECTIONS, {color: '#00FF00', lineWidth: 4});
+                drawLandmarks(canvasCtx, results.poseLandmarks, {color: '#FF0000', lineWidth: 2});
+                analyze(results.poseWorldLandmarks);
+            }
+            canvasCtx.restore();
+        }
+
+        const pose = new Pose({
+            locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`
+        });
+        pose.setOptions({
+            modelComplexity: 1,
+            smoothLandmarks: true,
+            enableSegmentation: false,
+            smoothSegmentation: true,
+            minDetectionConfidence: 0.5,
+            minTrackingConfidence: 0.5
+        });
+        pose.onResults(onResults);
+
+        const camera = new Camera(videoElement, {
+            onFrame: async () => {
+                await pose.send({image: videoElement});
+            },
+            width: 640,
+            height: 480
+        });
+        camera.start();
+
+        function analyzeStart() {
+            var audio = document.getElementById('audioPlayer');
+            audio.play();
+            setTimeout(movieStart, 10000);
+        }
+
+        function movieStart() {
+        }
+
+        function analyze(landmarks) {
+            var ear = calc(landmarks[L_EAR], landmarks[R_EAR]);
+            var shoulder  = calc(landmarks[L_SHOULDER], landmarks[R_SHOULDER]);
+            var hip = calc(landmarks[L_HIP], landmarks[R_HIP]);
+            //console.log("角度 : " + xxx);
+            if (ear < 180) {
+                elmTxtEar.textContent = ' ' + ear + '°';
+                elmImgEar.style.transform = 'rotate(' + ear * 3 + 'deg)';
+            } else {
+                elmTxtEar.textContent = ' *';
+            }
+            if (shoulder < 180) {
+                elmTxtSld.textContent = ' ' + shoulder + '°';
+                elmImgSld.style.transform = 'rotate(' + shoulder * 3 + 'deg)';
+            } else {
+                elmTxtSld.textContent = ' *';
+            }
+            if (hip < 180) {
+                elmTxtHip.textContent = ' ' + hip + '°';
+                elmImgHip.style.transform = 'rotate(' + hip * 3 + 'deg)';
+            } else {
+                elmTxtHip.textContent = ' *';
+            }
+        }
+
+        function calc(l, r) {
+            if (l.visibility > 0.5 && r.visibility > 0.5) {
+                return calculateAngle(l, r);
+            }
+            return 200.0;
+        }
+
+        function calculateAngle(pos1, pos2) {
+            // Δx と Δy を計算
+            const deltaX = pos2.x - pos1.x;
+            const deltaY = pos2.y - pos1.y;
+            // ラジアン単位の角度を計算
+            const radians = Math.atan2(deltaY, deltaX);
+            // ラジアンから度数への変換
+            const degrees = radians * (180 / Math.PI);
+            const adjustedDegrees = degrees < 0 ? degrees + 180 : degrees - 180;
+            return Math.floor(adjustedDegrees);
+        }
+
+    </script>
+</body>
+</html>
