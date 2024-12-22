@@ -6,8 +6,7 @@
     <title>MediaPipe Pose Example</title>
     <style>
         body, html {
-            margin-left: 20px;
-            margin-right: 20px;
+            margin: 0;
             padding: 0;
             overflow: auto;
             width: 100%;
@@ -24,7 +23,18 @@
         }
         button {
             padding: 5px 5px;
+            margin-top: 10px;
+            margin-left: 10px;
+            margin-right: 10px;
             font-size: 20px;
+            width: calc(100% - 20px);
+            box-sizing: border-box;
+        }
+        .explain {
+            border: 1px solid black;
+            width: calc(100% - 30px);
+            margin: 0 10px;
+            padding-left: 5px;
         }
 
     </style>
@@ -34,13 +44,14 @@
 </head>
 <body>
     <video id="video" autoplay playsinline></video>
-    <div>
-        <h3>歩行解析アプリ</h3>
+    <h3 style="margin-left: 10px;">歩行解析アプリ</h3>
+    <div class="explain">
         歩行時の姿勢を解析します、とりあえず「頭」「肩」「腰」の傾きだけを解析。
         <p>手順</p>
-        <li>スマホを水平に置いてください</li>
-        <li>「解析開始」ボタンを押すとカウントダウンが始まります、１０秒以内にスマホの前５ｍの位置に移動します</li>
-        <li>５秒間撮影します、スマホのほうに歩いてください</li>
+        <li>スマホのボリュームを最大にしてください、ガイド音声が流れます</li>
+        <li>スマホを縦に水平に置いてください</li>
+        <li>「解析開始」ボタンを押すとカウントダウンが始まります、１０秒以内にスマホの前５～７ｍの位置に移動します</li>
+        <li>５秒間撮影します、スマホに向かって歩いてください</li>
         <li>解析結果と撮影した写真を確認できます</li>
     </div>
     <br />
@@ -50,8 +61,8 @@
     <img src="arrow.png" width="30px" id ="img-ear" />頭<span id="txt-ear"></span><br />
     <img src="arrow.png" width="30px" id ="img-sld" />肩<span id="txt-sld"></span><br />
     <img src="arrow.png" width="30px" id ="img-hip" />腰<span id="txt-hip"></span><br />
-    <div id="result"></div>
-    <div id="image-container"></div>
+    <div id="result" class="explain"></div>
+    <div id="image-container" ></div>
     <audio id="audioPlayer">
         <source src="countdown.mp3" type="audio/mp3">
         お使いのブラウザはaudioタグをサポートしていません。
