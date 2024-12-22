@@ -6,34 +6,54 @@
     <title>MediaPipe Pose Example</title>
     <style>
         body, html {
-            margin: 0;
+            margin-left: 20px;
+            margin-right: 20px;
             padding: 0;
-            overflow: hidden;
+            overflow: auto;
             width: 100%;
             height: 100%;
         }
-        #canvas {
+        canvas {
             width: 100%;
             height: auto;
+            display: block;
+            position: relative;
         }
         video {
             display: none;
         }
+        button {
+            padding: 5px 5px;
+            font-size: 20px;
+        }
+
     </style>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils"></script>
 </head>
 <body>
-    <video id="video" autoplay></video>
+    <video id="video" autoplay playsinline></video>
+    <div>
+        <h3>歩行解析アプリ</h3>
+        歩行時の姿勢を解析します、とりあえず「頭」「肩」「腰」の傾きだけを解析。
+        <p>手順</p>
+        <li>スマホを水平に置いてください</li>
+        <li>「解析開始」ボタンを押すとカウントダウンが始まります、１０秒以内にスマホの前５ｍの位置に移動します</li>
+        <li>５秒間撮影します、スマホのほうに歩いてください</li>
+        <li>解析結果と撮影した写真を確認できます</li>
+    </div>
+    <br />
     <canvas id="canvas"></canvas>
     <button onclick="analyzeStart()">撮影解析開始</button>
     <br />
     <img src="arrow.png" width="30px" id ="img-ear" />頭<span id="txt-ear"></span><br />
     <img src="arrow.png" width="30px" id ="img-sld" />肩<span id="txt-sld"></span><br />
     <img src="arrow.png" width="30px" id ="img-hip" />腰<span id="txt-hip"></span><br />
+    <div id="result"></div>
+    <div id="image-container"></div>
     <audio id="audioPlayer">
-        <source src="countdown.wav" type="audio/wav">
+        <source src="countdown.mp3" type="audio/mp3">
         お使いのブラウザはaudioタグをサポートしていません。
     </audio>
 
@@ -53,6 +73,14 @@
         const elmTxtSld = document.getElementById('txt-sld');
         const elmImgHip = document.getElementById('img-hip');
         const elmTxtHip = document.getElementById('txt-hip');
+        const elmResult = document.getElementById('result');
+        const imageContainer = document.getElementById('image-container');
+        var cnt_ear = 0;
+        var sum_ear = 0;
+        var cnt_sld = 0;
+        var sum_sld = 0;
+        var cnt_hip = 0;
+        var sum_hip = 0;
 
         function resizeCanvas() {
             const aspectRatio = videoElement.videoWidth / videoElement.videoHeight;
@@ -98,12 +126,70 @@
         camera.start();
 
         function analyzeStart() {
+            imageContainer.innerHTML = '';
+            elmResult.innerHTML = '';
             var audio = document.getElementById('audioPlayer');
             audio.play();
-            setTimeout(movieStart, 10000);
+            setTimeout(movieStart, 15000);
         }
 
         function movieStart() {
+            console.log("** 撮影開始 **");
+            cnt_ear = 0;
+            sum_ear = 0;
+            cnt_sld = 0;
+            sum_sld = 0;
+            cnt_hip = 0;
+            sum_hip = 0;
+
+            setTimeout(captureImage, 500);
+            setTimeout(captureImage, 1000);
+            setTimeout(captureImage, 1500);
+            setTimeout(captureImage, 2000);
+            setTimeout(captureImage, 2500);
+            setTimeout(captureImage, 3000);
+            setTimeout(captureImage, 3500);
+            setTimeout(captureImage, 4000);
+            setTimeout(captureImage, 4500);
+            setTimeout(captureImage, 5000);
+            setTimeout(result, 5500);
+        }
+
+        function result() {
+            console.log("** 解析終了 **");
+            var msg = '<b>解析結果</b><br />';
+            if (cnt_ear != 0) {
+                var ave_ear = Math.floor(sum_ear / cnt_ear);
+                msg += resultDetail(ave_ear, '頭');
+            } 
+            if (cnt_sld != 0) {
+                var ave_sld = Math.floor(sum_sld / cnt_sld);
+                msg += resultDetail(ave_sld, '肩');
+            } 
+            if (cnt_hip != 0) {
+                var ave_hip = Math.floor(sum_hip / cnt_hip);
+                msg += resultDetail(ave_hip, '腰');            
+            } 
+            elmResult.innerHTML = msg;
+        }
+
+        function resultDetail(ave, pos) {
+            var msg = '<b>' + pos + '</b><br />';
+            if (ave > 0) {
+                msg += '左に' + ave + '°傾いています';
+            } else if (ave < 0) {
+                msg += '右に' + (ave * -1) + '°傾いています';
+            } else {
+                msg += '傾きはありません';
+            }
+            return msg + '<br />';
+        }
+
+        function captureImage() {
+            console.log("** 撮影 **");
+            const img = new Image();
+            img.src = canvasElement.toDataURL('image/png');
+            imageContainer.appendChild(img);
         }
 
         function analyze(landmarks) {
@@ -114,18 +200,24 @@
             if (ear < 180) {
                 elmTxtEar.textContent = ' ' + ear + '°';
                 elmImgEar.style.transform = 'rotate(' + ear * 3 + 'deg)';
+                ++cnt_ear;
+                sum_ear += ear;
             } else {
                 elmTxtEar.textContent = ' *';
             }
             if (shoulder < 180) {
                 elmTxtSld.textContent = ' ' + shoulder + '°';
                 elmImgSld.style.transform = 'rotate(' + shoulder * 3 + 'deg)';
+                ++cnt_sld;
+                sum_sld += shoulder;
             } else {
                 elmTxtSld.textContent = ' *';
             }
             if (hip < 180) {
                 elmTxtHip.textContent = ' ' + hip + '°';
                 elmImgHip.style.transform = 'rotate(' + hip * 3 + 'deg)';
+                ++cnt_hip;
+                sum_hip += hip;
             } else {
                 elmTxtHip.textContent = ' *';
             }
